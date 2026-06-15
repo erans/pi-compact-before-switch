@@ -6,8 +6,55 @@
 
 import type { ExtensionAPI, Model } from "@earendil-works/pi-coding-agent";
 
+export type ModelSelectSource = "set" | "cycle" | "restore";
+
+export interface CompactBeforeSwitchEvent {
+	model: Model<any>;
+	previousModel: Model<any> | undefined;
+	source: ModelSelectSource;
+}
+
+interface GuardState {
+	active: boolean;
+	pendingTarget: Model<any> | null;
+	guardTimer: ReturnType<typeof setTimeout> | null;
+}
+
 const RESERVE_TOKENS = 16_384;
 const GUARD_TIMEOUT_MS = 30_000;
+
+/**
+ * Pure trigger filter. Returns true iff this model_select event should
+ * prompt the user to compact before switching.
+ *
+ * Trigger conditions (all must hold):
+ *   1. source === "set"   (skip Ctrl+P cycling and session restore)
+ *   2. previousModel defined (no first-selection prompt)
+ *   3. model differs from previousModel by id AND provider
+ *   4. model.contextWindow < previousModel.contextWindow (narrowing)
+ *   5. currentTokens > model.contextWindow - reserve
+ */
+export function shouldCompactBeforeSwitch(
+	event: CompactBeforeSwitchEvent,
+	getTokenCount: () => number | null | undefined,
+	reserveTokens: number = RESERVE_TOKENS,
+): boolean {
+	const { model, previousModel, source } = event;
+
+	// 1. Skip cycling and session restore; only intercept explicit /model picks.
+	if (source !== "set") return false;
+	// 2. Ignore first selection (no previous model to compact with).
+	if (!previousModel) return false;
+	// 3. Ignore same-model re-selects.
+	if (model.id === previousModel.id && model.provider === previousModel.provider) return false;
+	// 4. Only intervene on window narrowing.
+	if (model.contextWindow >= previousModel.contextWindow) return false;
+	// 5. Only if current tokens exceed target window minus reserve.
+	const tokens = getTokenCount() ?? 0;
+	if (tokens <= model.contextWindow - reserveTokens) return false;
+
+	return true;
+}
 
 function formatConfirmBody(
 	tokens: number,
@@ -21,12 +68,6 @@ function formatConfirmBody(
 		"",
 		`Compact with ${previousModel.id} first, then switch.`,
 	].join("\n");
-}
-
-interface GuardState {
-	active: boolean;
-	pendingTarget: Model<any> | null;
-	guardTimer: ReturnType<typeof setTimeout> | null;
 }
 
 function setActive(state: GuardState, value: boolean, onTimeout: () => void): void {
@@ -55,21 +96,11 @@ export default function (pi: ExtensionAPI): void {
 	pi.on("model_select", async (event, ctx) => {
 		if (stateRef.active) return; // reentrancy guard
 
-		const { model, previousModel, source } = event;
-
-		// Trigger condition 1: skip Ctrl+P cycling.
-		if (source === "cycle") return;
-		// Trigger condition 2: ignore first selection.
-		if (!previousModel) return;
-		// Trigger condition 3: ignore same-model re-select.
-		if (model.id === previousModel.id && model.provider === previousModel.provider) return;
-		// Trigger condition 4: only intervene on window narrowing.
-		if (model.contextWindow >= previousModel.contextWindow) return;
-
-		// Trigger condition 5: only if current tokens exceed target window minus reserve.
 		const usage = ctx.getContextUsage();
+		if (!shouldCompactBeforeSwitch(event, () => usage?.tokens)) return;
+
+		const { model, previousModel } = event;
 		const tokens = usage?.tokens ?? 0;
-		if (tokens <= model.contextWindow - RESERVE_TOKENS) return;
 
 		if (!ctx.hasUI) return; // path [C]: no UI (print mode), fall through silently for now
 

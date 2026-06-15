@@ -1,0 +1,12 @@
+{
+	"name": "pi-compact-before-switch",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Compact context with the outgoing model before switching to a smaller-window model.",
+	"scripts": {
+		"test": "node --test --experimental-strip-types --no-warnings --test-force-exit 'extension/__tests__/*.test.ts'"
+	},
+	"engines": {
+		"node": ">=22.6"
+	}
+}

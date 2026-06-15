@@ -4,13 +4,9 @@ A [pi](https://pi.dev) extension that prompts you to compact context using the *
 
 When you switch from an Opus-1M to a Haiku-200K with a long conversation, you'll see:
 
-> **Compact before switching?**
-> Switching from claude-opus-4-5 (1,000,000 ctx) → claude-haiku-4-5 (200,000 ctx).
-> Current context: 320,000 tokens — exceeds target window minus reserve.
-> This will compact, then re-apply Haiku. Take a few seconds — no API key needed on Opus.
-> _(← confirm  → cancel)_
+![Confirm dialog example](examples/confirm-dialog.jpeg)
 
-If you confirm, the extension reverts to Opus, runs pi's default compaction, then re-applies Haiku — all automatic. If you cancel, the switch is reverted and you stay on Opus.
+The dialog explains the source and target windows, current token count vs. the target minus reserve, and proceeds automatically if you confirm: revert to Opus, compact, re-apply Haiku. If you cancel, the switch is reverted.
 
 ## Install
 

@@ -23,6 +23,28 @@ function formatConfirmBody(
 	].join("\n");
 }
 
+interface GuardState {
+	active: boolean;
+	pendingTarget: Model<any> | null;
+	guardTimer: ReturnType<typeof setTimeout> | null;
+}
+
+function setActive(state: GuardState, value: boolean, onTimeout: () => void): void {
+	state.active = value;
+	if (state.guardTimer) {
+		clearTimeout(state.guardTimer);
+		state.guardTimer = null;
+	}
+	if (value) {
+		state.guardTimer = setTimeout(() => {
+			state.active = false;
+			state.pendingTarget = null;
+			state.guardTimer = null;
+			onTimeout();
+		}, GUARD_TIMEOUT_MS);
+	}
+}
+
 export default function (pi: ExtensionAPI): void {
 	let active = false;
 	let pendingTarget: Model<any> | null = null;

@@ -4,7 +4,7 @@ A [pi](https://pi.dev) extension that prompts you to compact context using the *
 
 When you switch from an Opus-1M to a Haiku-200K with a long conversation, you'll see:
 
-![Confirm dialog example](examples/confirm-dialog.jpeg)
+![Confirm dialog](https://raw.githubusercontent.com/erans/pi-compact-before-switch/v0.1.0/examples/confirm-dialog.jpeg)
 
 The dialog explains the source and target windows, current token count vs. the target minus reserve, and proceeds automatically if you confirm: revert to Opus, compact, re-apply Haiku. If you cancel, the switch is reverted.
 

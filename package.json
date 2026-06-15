@@ -25,6 +25,7 @@
     "extensions/",
     "tests/",
     "scripts/",
+    "examples/",
     "README.md",
     "LICENSE"
   ],

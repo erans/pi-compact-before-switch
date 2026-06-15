@@ -128,7 +128,24 @@ export default function (pi: ExtensionAPI): void {
 				},
 			});
 		} else {
-			// Path [B]: cancel. Built in Task 7.
+			const revertOk = await pi.setModel(previousModel);
+			try {
+				if (!revertOk) {
+					ctx.ui.notify(
+						`Switch canceled but could not revert to ${previousModel.provider}/${previousModel.id}; staying on ${model.provider}/${model.id}.`,
+						"warning",
+					);
+					return;
+				}
+				ctx.ui.notify(
+					`Switch canceled. Context still too large for ${model.provider}/${model.id}. Run /compact manually when ready.`,
+					"info",
+				);
+			} finally {
+				// Always clear guard state so the next genuine /model press is not swallowed.
+				setActive(stateRef, false, () => {});
+				stateRef.pendingTarget = null;
+			}
 		}
 	});
 }

@@ -46,12 +46,14 @@ function setActive(state: GuardState, value: boolean, onTimeout: () => void): vo
 }
 
 export default function (pi: ExtensionAPI): void {
-	let active = false;
-	let pendingTarget: Model<any> | null = null;
-	let guardTimer: ReturnType<typeof setTimeout> | null = null;
+	const stateRef: GuardState = {
+		active: false,
+		pendingTarget: null,
+		guardTimer: null,
+	};
 
 	pi.on("model_select", async (event, ctx) => {
-		if (active) return; // reentrancy guard
+		if (stateRef.active) return; // reentrancy guard
 
 		const { model, previousModel, source } = event;
 
@@ -76,7 +78,55 @@ export default function (pi: ExtensionAPI): void {
 			formatConfirmBody(tokens, previousModel, model),
 		);
 		if (confirmed) {
-			// Path [A]: confirm. Built in Task 6.
+			const revertOk = await pi.setModel(previousModel);
+			if (!revertOk) {
+				ctx.ui.notify(
+					`No API key for ${previousModel.provider}/${previousModel.id}. Switch canceled; staying on ${model.provider}/${model.id}.`,
+					"error",
+				);
+				return;
+			}
+
+			stateRef.pendingTarget = model;
+			setActive(stateRef, true, () => {
+				ctx.ui.notify(
+					"Compact before switch timed out — pick a model again when ready.",
+					"warning",
+				);
+			});
+
+			ctx.ui.notify(
+				`Compacting with ${previousModel.provider}/${previousModel.id} before switch…`,
+				"info",
+			);
+
+			ctx.compact({
+				onComplete: async () => {
+					try {
+						const target = stateRef.pendingTarget ?? model;
+						const reapplyOk = await pi.setModel(target);
+						if (!reapplyOk) {
+							ctx.ui.notify(
+								`Switch to ${target.provider}/${target.id} failed; staying on ${previousModel.provider}/${previousModel.id}.`,
+								"error",
+							);
+							return;
+						}
+						ctx.ui.notify(`Compacted — switched to ${target.provider}/${target.id}`, "info");
+					} finally {
+						setActive(stateRef, false, () => {});
+						stateRef.pendingTarget = null;
+					}
+				},
+				onError: (err) => {
+					setActive(stateRef, false, () => {});
+					stateRef.pendingTarget = null;
+					ctx.ui.notify(
+						`Compact failed: ${err.message}. Staying on ${previousModel.provider}/${previousModel.id}.`,
+						"error",
+					);
+				},
+			});
 		} else {
 			// Path [B]: cancel. Built in Task 7.
 		}

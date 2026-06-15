@@ -94,6 +94,26 @@ export default function (pi: ExtensionAPI): void {
 	};
 
 	pi.on("model_select", async (event, ctx) => {
+		if (process.env.PI_DEBUG_CBS === "1") {
+			const dbgUsage = ctx.getContextUsage();
+			const dbgPrev = event.previousModel;
+			const dbgNext = event.model;
+			const dbgTrigger = shouldCompactBeforeSwitch(event, () => dbgUsage?.tokens);
+			const dbgThreshold = dbgNext.contextWindow - RESERVE_TOKENS;
+			ctx.ui.notify(
+				[
+					"CBS DEBUG",
+					`source=${event.source} guard=${stateRef.active} hasUI=${ctx.hasUI}`,
+					`prev=${dbgPrev ? `${dbgPrev.provider}/${dbgPrev.id}` : "<none>"} (${dbgPrev?.contextWindow ?? "?"})`,
+					`next=${dbgNext.provider}/${dbgNext.id} (${dbgNext.contextWindow})`,
+					`tokens=${dbgUsage?.tokens ?? "null"}`,
+					`threshold (next - ${RESERVE_TOKENS})=${dbgThreshold}`,
+					`trigger=${dbgTrigger}`,
+				].join(" | "),
+				"info",
+			);
+		}
+
 		if (stateRef.active) return; // reentrancy guard
 
 		const usage = ctx.getContextUsage();

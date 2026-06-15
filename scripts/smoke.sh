@@ -4,4 +4,4 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
-exec pi -e "$REPO_DIR/extension/compact-before-switch.ts" "$@"
+exec pi -e "$REPO_DIR/extensions/compact-before-switch.ts" "$@"

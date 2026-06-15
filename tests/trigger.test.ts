@@ -1,14 +1,18 @@
 /**
  * Pure-function tests for the trigger filter.
- * Run with: node --test --experimental-strip-types extension/__tests__/trigger.test.ts
+ * Run with: node --test --experimental-strip-types tests/trigger.test.ts
  */
+
+// Ensure the PI_DEBUG_CBS env var leaks from the developer's shell do not
+// turn on diagnostic emits inside the extension under test.
+delete process.env.PI_DEBUG_CBS;
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
 	shouldCompactBeforeSwitch,
 	type CompactBeforeSwitchEvent,
-} from "../compact-before-switch.ts";
+} from "../extensions/compact-before-switch.ts";
 
 type Model = CompactBeforeSwitchEvent["model"];
 

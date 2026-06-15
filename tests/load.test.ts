@@ -10,12 +10,16 @@
  *   - scenario 6 (cancel) reverts + notifies + clears guard
  *   - reentrancy guard swallows model_select fired during revert
  *
- * Run with: node --test --experimental-strip-types extension/__tests__/load.test.ts
+ * Run with: node --test --experimental-strip-types tests/load.test.ts
  */
+
+// Ensure the PI_DEBUG_CBS env var leaks from the developer's shell do not
+// turn on diagnostic emits inside the extension under test.
+delete process.env.PI_DEBUG_CBS;
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import extensionFactory from "../compact-before-switch.ts";
+import extensionFactory from "../extensions/compact-before-switch.ts";
 
 type ModelStub = { provider: string; id: string; contextWindow: number };
 type ConfirmCall = { title: string; body: string };

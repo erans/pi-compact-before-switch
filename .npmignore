@@ -1,0 +1,7 @@
+/verification/
+/docs/
+.gitignore
+.git/
+node_modules/
+*.test.ts
+!tests/*.test.ts

@@ -9,6 +9,20 @@ import type { ExtensionAPI, Model } from "@earendil-works/pi-coding-agent";
 const RESERVE_TOKENS = 16_384;
 const GUARD_TIMEOUT_MS = 30_000;
 
+function formatConfirmBody(
+	tokens: number,
+	previousModel: Model<any>,
+	newModel: Model<any>,
+): string {
+	return [
+		`Context: ${tokens.toLocaleString()} tokens`,
+		`Target window (${newModel.provider}/${newModel.id}): ${newModel.contextWindow.toLocaleString()}`,
+		`Source window (${previousModel.provider}/${previousModel.id}): ${previousModel.contextWindow.toLocaleString()}`,
+		"",
+		`Compact with ${previousModel.id} first, then switch.`,
+	].join("\n");
+}
+
 export default function (pi: ExtensionAPI): void {
 	let active = false;
 	let pendingTarget: Model<any> | null = null;
@@ -33,6 +47,16 @@ export default function (pi: ExtensionAPI): void {
 		const tokens = usage?.tokens ?? 0;
 		if (tokens <= model.contextWindow - RESERVE_TOKENS) return;
 
-		// Confirm-only path comes next; no programmatic test possible here.
+		if (!ctx.hasUI) return; // path [C]: no UI (print mode), fall through silently for now
+
+		const confirmed = await ctx.ui.confirm(
+			"Compact before switching?",
+			formatConfirmBody(tokens, previousModel, model),
+		);
+		if (confirmed) {
+			// Path [A]: confirm. Built in Task 6.
+		} else {
+			// Path [B]: cancel. Built in Task 7.
+		}
 	});
 }
